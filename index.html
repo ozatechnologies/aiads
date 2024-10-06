@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Video Ad Maker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #videoContainer {
+            margin-top: 20px;
+        }
+        video {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text to Video Ad Maker</h1>
+    <textarea id="scriptInput" rows="5" placeholder="Enter your script here..."></textarea>
+    <button id="generateBtn">Generate Video</button>
+
+    <div id="videoContainer"></div>
+
+    <script>
+        const pexelApiKey = 'tR1sh3nlY8aPATAcLApPg3odWO7Fjg5WmeSXjWv9MA3nWFTdIFQH0O39';
+        const elevenLabsApiKey = 'sk_d98baa0fb1337ee9e97252213f3a46d7cd96759dff5bc8bc';
+
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const script = document.getElementById('scriptInput').value;
+            if (!script) {
+                alert('Please enter a script.');
+                return;
+            }
+
+            const audioUrl = await convertTextToSpeech(script);
+            const videoUrls = await fetchStockVideos(script);
+
+            // Create video elements
+            const videoContainer = document.getElementById('videoContainer');
+            videoContainer.innerHTML = ''; // Clear previous videos
+
+            videoUrls.forEach(url => {
+                const videoElement = document.createElement('video');
+                videoElement.src = url;
+                videoElement.controls = true;
+                videoElement.play();
+                videoContainer.appendChild(videoElement);
+            });
+
+            // Play audio
+            const audioElement = new Audio(audioUrl);
+            audioElement.play();
+        });
+
+        async function convertTextToSpeech(script) {
+            const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${elevenLabsApiKey}`
+                },
+                body: JSON.stringify({
+                    text: script,
+                    voice: 'en-us' // Adjust voice settings as needed
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate audio');
+            }
+            const data = await response.json();
+            return data.audioUrl; // Adjust based on actual response structure
+        }
+
+        async function fetchStockVideos(script) {
+            const response = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(script)}`, {
+                headers: {
+                    Authorization: pexelApiKey
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch videos');
+            }
+
+            const data = await response.json();
+            return data.videos.map(video => video.video_files[0].link); // Adjust based on actual response structure
+        }
+    </script>
+</body>
+</html>
