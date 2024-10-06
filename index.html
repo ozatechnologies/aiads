@@ -7,97 +7,70 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
             padding: 20px;
             background-color: #f4f4f4;
         }
-        input, textarea, button {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        #videoContainer {
+        #output {
             margin-top: 20px;
-        }
-        video {
-            width: 100%;
-            height: auto;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
 <body>
     <h1>Text to Video Ad Maker</h1>
-    <textarea id="scriptInput" rows="5" placeholder="Enter your script here..."></textarea>
-    <button id="generateBtn">Generate Video</button>
-
-    <div id="videoContainer"></div>
+    <textarea id="script" rows="4" cols="50" placeholder="Enter your script here..."></textarea><br>
+    <button id="generate">Generate Video Ad</button>
+    
+    <h2>Output</h2>
+    <div id="output"></div>
 
     <script>
-        const pexelApiKey = 'tR1sh3nlY8aPATAcLApPg3odWO7Fjg5WmeSXjWv9MA3nWFTdIFQH0O39';
-        const elevenLabsApiKey = 'sk_d98baa0fb1337ee9e97252213f3a46d7cd96759dff5bc8bc';
+        document.getElementById('generate').onclick = async () => {
+            const scriptText = document.getElementById('script').value;
+            const audioURL = await generateAudio(scriptText);
+            const videoURL = await fetchVideos(scriptText);
+            displayOutput(audioURL, videoURL);
+        };
 
-        document.getElementById('generateBtn').addEventListener('click', async () => {
-            const script = document.getElementById('scriptInput').value;
-            if (!script) {
-                alert('Please enter a script.');
-                return;
-            }
-
-            const audioUrl = await convertTextToSpeech(script);
-            const videoUrls = await fetchStockVideos(script);
-
-            // Create video elements
-            const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = ''; // Clear previous videos
-
-            videoUrls.forEach(url => {
-                const videoElement = document.createElement('video');
-                videoElement.src = url;
-                videoElement.controls = true;
-                videoElement.play();
-                videoContainer.appendChild(videoElement);
-            });
-
-            // Play audio
-            const audioElement = new Audio(audioUrl);
-            audioElement.play();
-        });
-
-        async function convertTextToSpeech(script) {
+        async function generateAudio(script) {
             const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${elevenLabsApiKey}`
+                    'Authorization': 'Bearer sk_d98baa0fb1337ee9e97252213f3a46d7cd96759dff5bc8bc'
                 },
-                body: JSON.stringify({
-                    text: script,
-                    voice: 'en-us' // Adjust voice settings as needed
-                })
+                body: JSON.stringify({ text: script, voice: 'en_us_male' })
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to generate audio');
-            }
             const data = await response.json();
-            return data.audioUrl; // Adjust based on actual response structure
+            return data.audio_url; // Ensure your API returns this field
         }
 
-        async function fetchStockVideos(script) {
-            const response = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(script)}`, {
+        async function fetchVideos(query) {
+            const response = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}`, {
                 headers: {
-                    Authorization: pexelApiKey
+                    'Authorization': 'tR1sh3nlY8aPATAcLApPg3odWO7Fjg5WmeSXjWv9MA3nWFTdIFQH0O39'
                 }
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch videos');
-            }
-
             const data = await response.json();
-            return data.videos.map(video => video.video_files[0].link); // Adjust based on actual response structure
+            return data.videos[0].video_files[0].link; // Ensure your API returns this field
+        }
+
+        function displayOutput(audioURL, videoURL) {
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = `
+                <h3>Generated Audio:</h3>
+                <audio controls>
+                    <source src="${audioURL}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <h3>Suggested Video:</h3>
+                <video width="320" height="240" controls>
+                    <source src="${videoURL}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
         }
     </script>
 </body>
